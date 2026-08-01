@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders Fetch Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        .info { color: blue; }
+        pre {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .order-card {
+            background: #f9f9f9;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Orders Data Fetch Test</h1>
+    
+    <div class="test-section">
+        <h2>Supabase Configuration</h2>
+        <label for="supabaseUrl">Supabase URL:</label>
+        <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co" style="width: 100%; padding: 8px; margin: 5px 0;">
+        <br>
+        <label for="supabaseKey">Supabase Anon Key:</label>
+        <input type="password" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." style="width: 100%; padding: 8px; margin: 5px 0;">
+        <br>
+        <button onclick="runTests()">Run All Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script>
+        let supabase = null;
+
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-section ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function runTests() {
+            const url = document.getElementById('supabaseUrl').value.trim();
+            const key = document.getElementById('supabaseKey').value.trim();
+
+            if (!url || !key) {
+                log('<h3>❌ ERROR: Please provide Supabase URL and Anon Key</h3>', 'error');
+                return;
+            }
+
+            try {
+                supabase = window.supabase.createClient(url, key);
+                log('<h3>🔍 Starting Orders Fetch Tests...</h3>', 'info');
+
+                // Test 1: Check orders table
+                await testOrdersTable();
+
+                // Test 2: Check profiles table
+                await testProfilesTable();
+
+                // Test 3: Test orders with profiles join
+                await testOrdersWithProfilesJoin();
+
+                // Test 4: Test order_items table
+                await testOrderItemsTable();
+
+                log('<h3>✅ All Tests Completed</h3>', 'success');
+
+            } catch (error) {
+                log(`<h3>❌ FATAL ERROR: ${error.message}</h3><pre>${error.stack}</pre>`, 'error');
+            }
+        }
+
+        async function testOrdersTable() {
+            log('<h3>Test 1: Checking orders table accessibility...</h3>', 'info');
+            
+            try {
+                const { data, error, count } = await supabase
+                    .from('orders')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (error) {
+                    log(`<p class="error">❌ ERROR: Cannot access orders table: ${error.message}</p><pre>${JSON.stringify(error, null, 2)}</pre>`, 'error');
+                } else {
+                    log(`<p class="success">✅ Orders table accessible. Total orders: ${count}</p>`, 'success');
+                }
+            } catch (e) {
+                log(`<p class="error">❌ EXCEPTION: ${e.message}</p>`, 'error');
+            }
+        }
+
+        async function testProfilesTable() {
+            log('<h3>Test 2: Checking profiles table accessibility...</h3>', 'info');
+            
+            try {
+                const { data, error, count } = await supabase
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (error) {
+                    log(`<p class="error">❌ ERROR: Cannot access profiles table: ${error.message}</p><pre>${JSON.stringify(error, null, 2)}</pre>`, 'error');
+                } else {
+                    log(`<p class="success">✅ Profiles table accessible. Total profiles: ${count}</p>`, 'success');
+                }
+            } catch (e) {
+                log(`<p class="error">❌ EXCEPTION: ${e.message}</p>`, 'error');
+            }
+        }
+
+        async function testOrdersWithProfilesJoin() {
+            log('<h3>Test 3: Testing orders query with profiles join...</h3>', 'info');
+            
+            try {
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select(`
+                        id,
+                        order_number,
+                        user_id,
+                        status,
+                        total_amount,
+                        customer_name,
+                        customer_phone,
+                        customer_email,
+                        shipping_address,
+                        payment_method,
+                        notes,
+                        created_at,
+                        updated_at,
+                        profiles (
+                            id,
+                            full_name,
+                            phone,
+                            address
+                        )
+                    `)
+                    .order('created_at', { ascending: false })
+                    .limit(3);
+
+                if (error) {
+                    log(`<p class="error">❌ ERROR: Query with profiles join failed: ${error.message}</p><pre>${JSON.stringify(error, null, 2)}</pre>`, 'error');
+                    log(`<p class="warning">⚠️ This is likely an RLS (Row Level Security) issue. The profiles table might not be accessible via orders join.</p>`, 'warning');
+                } else {
+                    log(`<p class="success">✅ Query successful! Fetched ${data.length} orders</p>`, 'success');
+                    
+                    if (data.length > 0) {
+                        const firstOrder = data[0];
+                        log(`<div class="order-card">
+                            <h4>First Order Structure:</h4>
+                            <p><strong>Order ID:</strong> ${firstOrder.id}</p>
+                            <p><strong>Order Number:</strong> ${firstOrder.order_number}</p>
+                            <p><strong>Status:</strong> ${firstOrder.status}</p>
+                            <p><strong>Customer Name (from orders):</strong> ${firstOrder.customer_name || 'N/A'}</p>
+                            <p><strong>Customer Phone (from orders):</strong> ${firstOrder.customer_phone || 'N/A'}</p>
+                            <p><strong>Profiles Data:</strong> ${firstOrder.profiles ? 'PRESENT ✅' : 'NULL ❌'}</p>
+                            ${firstOrder.profiles ? `
+                                <p><strong>Profile ID:</strong> ${firstOrder.profiles.id}</p>
+                                <p><strong>Full Name (from profiles):</strong> ${firstOrder.profiles.full_name || 'N/A'}</p>
+                                <p><strong>Phone (from profiles):</strong> ${firstOrder.profiles.phone || 'N/A'}</p>
+                                <p><strong>Address (from profiles):</strong> ${firstOrder.profiles.address || 'N/A'}</p>
+                            ` : ''}
+                        </div>`, 'info');
+                        
+                        log(`<pre>${JSON.stringify(firstOrder, null, 2)}</pre>`, 'info');
+                    } else {
+                        log(`<p class="warning">⚠️ No orders found in database</p>`, 'warning');
+                    }
+                }
+            } catch (e) {
+                log(`<p class="error">❌ EXCEPTION: ${e.message}</p>`, 'error');
+            }
+        }
+
+        async function testOrderItemsTable() {
+            log('<h3>Test 4: Checking order_items table accessibility...</h3>', 'info');
+            
+            try {
+                const { data, error, count } = await supabase
+                    .from('order_items')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (error) {
+                    log(`<p class="error">❌ ERROR: Cannot access order_items table: ${error.message}</p><pre>${JSON.stringify(error, null, 2)}</pre>`, 'error');
+                } else {
+                    log(`<p class="success">✅ Order items table accessible. Total items: ${count}</p>`, 'success');
+                }
+            } catch (e) {
+                log(`<p class="error">❌ EXCEPTION: ${e.message}</p>`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+export { ProductCard } from './ProductCard';
+export { CategoryCard } from './CategoryCard';
+export { CategorySlider } from './CategorySlider';
+export { HeroSection } from './HeroSection';
+export { FloatingCartPreview } from './FloatingCartPreview';
+export { NewsletterSection } from './NewsletterSection';
+export type { ProductCardProps } from './ProductCard';
+export type { CategoryCardProps } from './CategoryCard';
+export type { CategorySliderProps } from './CategorySlider';
+export type { HeroSectionProps, HeroSlide } from './HeroSection';
+export type { FloatingCartPreviewProps } from './FloatingCartPreview';
+export type { NewsletterSectionProps } from './NewsletterSection';
